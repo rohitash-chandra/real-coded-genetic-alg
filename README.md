@@ -14,3 +14,6 @@ Real-coded Genetic Algorithm: Roulette Selection with Heuristic Crossover
 [download](http://heuristic.kaist.ac.kr/cylee/xga/Paper%20Review/Papers/[P6]%20Real-Coded%20Genetic%20Algorithms.pdf)
 
 [Blanco, Armando, Miguel Delgado, and Maria C. Pegalajar. "A real-coded genetic algorithm for training recurrent neural networks." Neural networks 14.1 (2001): 93-105.](https://www.sciencedirect.com/science/article/pii/S0893608000000812)
+
+[Wiki - Roullete selection](https://en.wikipedia.org/wiki/Fitness_proportionate_selection)
+[Wiki - Genetic alg](https://en.wikipedia.org/wiki/Genetic_algorithm)
