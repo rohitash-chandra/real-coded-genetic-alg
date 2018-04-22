@@ -10,6 +10,18 @@
 #Problem - Rosenbrock function optimisation
 
 
+# Source: Wright, A. H. (1991). Genetic algorithms for real parameter optimization. In Foundations of genetic algorithms (Vol. 1, pp. 205-218). Elsevier.
+#https://www.sciencedirect.com/science/article/pii/B9780080506845500161
+#http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.25.5297&rep=rep1&type=pdf
+
+#Goldberg, David E., and Kalyanmoy Deb. "A comparative analysis of selection schemes used in genetic algorithms." Foundations of genetic algorithms. Vol. 1. Elsevier, 1991. 69-93.
+
+
+#[Eshelman, Larry J., and J. David Schaffer. "Real-coded genetic algorithms and interval-schemata." Foundations of genetic algorithms. Vol. 2. Elsevier, 1993. 187-202.](https://www.sciencedirect.com/science/article/pii/B9780080948324500180)
+#[download](http://heuristic.kaist.ac.kr/cylee/xga/Paper%20Review/Papers/[P6]%20Real-Coded%20Genetic%20Algorithms.pdf)
+
+#[Blanco, Armando, Miguel Delgado, and Maria C. Pegalajar. "A real-coded genetic algorithm for training recurrent neural networks." Neural networks 14.1 (2001): 93-105.](https://www.sciencedirect.com/science/article/pii/S0893608000000812)
+
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -19,7 +31,7 @@ import random
 
 
 class Evolution:
-	def __init__(self, pop_size, num_variables, max_evals, max_limits, min_limits, xover_rate, mu_rate):
+	def __init__(self, prob, pop_size, num_variables, max_evals, max_limits, min_limits, xover_rate, mu_rate, min_fitness):
  
 		self.pop   = [] 
 		self.new_pop =  []
@@ -43,11 +55,11 @@ class Evolution:
 		self.stepsize_vec  =  np.zeros(num_variables)
 		self.step_ratio = 0.1 # determines the extent of noise you add when you mutate
 
-		self.num_eval = 0
+		self.num_eval = 0 # begin with
 
-		self.problem = 1  # 1 rosen, 2 ellipsoidal 
+		self.problem = prob  # 1 rosen, 2 ellipsoidal 
 
-		self.min_error = 1e-05
+		self.min_error = min_fitness
  
 
 
@@ -59,7 +71,7 @@ class Evolution:
 		span = np.subtract(self.max_limits,self.min_limits)
 
 
-		for i in range(self.num_variables): # calculate the step size of each of the parameters
+		for i in range(self.num_variables): # calculate the step size of each of the parameters. just for mutation by random-walk
 			self.stepsize_vec[i] = self.step_ratio  * span[i] 
 
 	def print_pop(self ):
@@ -80,10 +92,10 @@ class Evolution:
 				fit= fit + ((j+1)*(x[j]*x[j]))
 
 		if fit ==0:
-			fit = 1e-20
+			fit = 1e-20 # to be safe with division by 0
 				  
 
-		return 1/fit
+		return 1/fit # note we will maximize fitness, hence minimize error 
 
 	def evaluate_population(self): 
 
@@ -102,9 +114,7 @@ class Evolution:
 				self.best_index = i  
 
 		self.num_eval = self.num_eval + self.pop_size
-
-		print (sum, ' is sum ****** ')
-
+ 
 		 
 		for j in range(self.pop_size):
 			self.fit_ratio[j] = (self.fit_list[j]/sum)* 100
@@ -122,10 +132,7 @@ class Evolution:
 			u = 1  
 
 		for i in range(1, wheel.size):
-			wheel[i] = self.fit_ratio[i-1] + wheel[i-1] 
-		#print(wheel, '  wheel') 
-		#print (self.fit_ratio, ' self.fit_ratio') 
-		#print(u, '    u ')  
+			wheel[i] = self.fit_ratio[i-1] + wheel[i-1]  
 		for j in range( wheel.size-1):
 			if((u> wheel[j]) and (u < wheel[j+1])):
 				return j   
@@ -140,8 +147,7 @@ class Evolution:
 
 		left_fit = self.fit_list[leftpair]
 		right_fit =  self.fit_list[rightpair]
-
-		#print(leftpair, rightpair, left_fit, right_fit, ' *      left right fit fit')
+ 
 
 		u = random.uniform(0,1)
 
@@ -159,7 +165,7 @@ class Evolution:
 		if u < self.mu_rate: # implement mutation 
 			child =  np.random.normal(child, self.stepsize_vec)
  
-			# check if the limits satisfy
+			# check if the limits satisfy - keep in range
 
 		for j in range(child.size):
 			if child[j] > self.max_limits[j]:
@@ -225,9 +231,9 @@ class Evolution:
  
  
 
-		self.print_pop() 
+		#self.print_pop() 
 
-		return best, 1/self.best_fit, global_best, 1/global_bestfit
+		return best, 1/self.best_fit, global_best, 1/global_bestfit, self.pop, self.fit_list
 
  
 
@@ -239,35 +245,41 @@ def main():
 	min_fitness = 0.005  # stop when fitness reaches this value. not implemented - can be implemented later
 
 
-	max_evals = 20000   # need to decide yourself 80000
+	max_evals = 20000   # need to decide yourself - function evaluations 
 
-	pop_size = 50
-	num_variables = 10 
+	pop_size = 50  # to be adjusted for the problem
+	num_variables = 10  # depends on your problem
 
-	xover_rate = 0.8
+	xover_rate = 0.8 # ideal, but you can adjust further 
 	mu_rate = 0.1
 
-	#max_limits = [2, 2, 2, 2, 2]
+	#max_limits = [2, 2, 2, 2, 2]  # can handle different limits for different variables
 	max_limits = np.repeat(2, num_variables)
 	#min_limits = [0, 0, 0, 0, 0] 
 
 	min_limits = np.repeat(0, num_variables)
+
+	prob = 1 # 1 is rosenbrock, 2 is ellipsoidal
  
 
-	evo = Evolution(pop_size, num_variables, max_evals,  max_limits, min_limits, xover_rate, mu_rate)
+	evo = Evolution(prob, pop_size, num_variables, max_evals,  max_limits, min_limits, xover_rate, mu_rate, min_fitness)
 
 
-	best, best_fit, global_best, global_bestfit = evo.evo_alg()
+	best, best_fit, global_best, global_bestfit, pop, fit_list = evo.evo_alg()
+
+	print(' ******************************************* main results ****************')
 
 
-	print(best, ' retruned best ')
+	print(best, ' local  best ')
 
-	print(best_fit, ' retruned best fit')
+	print(best_fit, '  local  best fit')
 
 
-	print(global_best, ' retruned global best ')
+	print(global_best, '   global best ')
 
-	print(global_bestfit, ' retruned global bestfit')
+	print(global_bestfit, '   global bestfit')
+
+	#print(pop, ' final pop')
  
  
 
