@@ -139,6 +139,24 @@ class Evolution:
 	 
 		return 0
 
+	def wrights_xover(self,left_fit, right_fit, left, right):  
+
+		alpha = random.uniform(0,1) 
+		if ( left_fit > right_fit): 
+			child = (alpha *(left-right))+ left
+		else: 
+			child = (alpha *  (right-left))+ right
+
+		return child
+
+	def impose_limits(self, child, prev):
+
+		for j in range(child.size):
+			if child[j] > self.max_limits[j]:
+					child[j] = prev[j]
+			elif child[j] < self.min_limits[j]:
+					child[j] = prev[j] 
+		return child 
 
 	def xover_mutate(self, leftpair,rightpair):  # xover and mutate
  
@@ -146,34 +164,26 @@ class Evolution:
 		right = self.pop[rightpair,:]
 
 		left_fit = self.fit_list[leftpair]
-		right_fit =  self.fit_list[rightpair]
- 
+		right_fit =  self.fit_list[rightpair] 
 
 		u = random.uniform(0,1)
 
-		if u < self.xover_rate:  # implement xover 
-
-		 	alpha = random.uniform(0,1)
-
-			if ( left_fit > right_fit): 
-				child = (alpha *(left-right))+ left
-		 	else: 
-				child = (alpha *  (right-left))+ right   
+		if u < self.xover_rate:  # implement xover  
+			child_one = self.wrights_xover(left_fit, right_fit, left, right ) 
+			child_two = self.wrights_xover(left_fit, right_fit, left, right ) 
 		else: 
-			child = left
+			child_one = left
+			child_two = right
 
 		if u < self.mu_rate: # implement mutation 
-			child =  np.random.normal(child, self.stepsize_vec)
+			child_one =  np.random.normal(child_one, self.stepsize_vec) 
+			child_two =  np.random.normal(child_two, self.stepsize_vec)
  
-			# check if the limits satisfy - keep in range
+			# check if the limits satisfy - keep in range 
+		child_one = self.impose_limits(child_one, left) 
+		child_two = self.impose_limits(child_two, right)
 
-		for j in range(child.size):
-			if child[j] > self.max_limits[j]:
-					child[j] = left[j]
-			elif child[j] < self.min_limits[j]:
-					child[j] = left[j] 
-
-		return child  
+		return child_one, child_two
 
 
 	def evo_alg(self):
@@ -192,16 +202,20 @@ class Evolution:
 			self.evaluate_population() 
 
  
-			for i in range(1, self.pop_size):
+			for i in range(0,   self.pop_size):
  
 				leftpair =  self.roullete_wheel() #np.random.randint(self.pop_size) 
 				rightpair = self.roullete_wheel()  # np.random.randint(self.pop_size)  
 
 				while (leftpair == rightpair): 
 					leftpair =  self.roullete_wheel()  # np.random.randint(self.pop_size) 
-					rightpair = self.roullete_wheel()  # np.random.randint(self.pop_size)  
+					rightpair = self.roullete_wheel()  # np.random.randint(self.pop_size) 
+
+				first_child, second_child = self.xover_mutate(leftpair,rightpair) 
 	   
-				self.new_pop[i,:] = self.xover_mutate(leftpair,rightpair)
+				self.new_pop[i,:] = first_child 
+				#self.new_pop[i+1,:] = second_child
+
 
 
 			best = self.pop[self.best_index, :]
@@ -231,7 +245,7 @@ class Evolution:
  
  
 
-		#self.print_pop() 
+			self.print_pop() 
 
 		return best, 1/self.best_fit, global_best, 1/global_bestfit, self.pop, self.fit_list
 
@@ -245,10 +259,10 @@ def main():
 	min_fitness = 0.005  # stop when fitness reaches this value. not implemented - can be implemented later
 
 
-	max_evals = 20000   # need to decide yourself - function evaluations 
+	max_evals = 50000   # need to decide yourself - function evaluations 
 
-	pop_size = 50  # to be adjusted for the problem
-	num_variables = 10  # depends on your problem
+	pop_size = 100  # to be adjusted for the problem
+	num_variables = 5  # depends on your problem
 
 	xover_rate = 0.8 # ideal, but you can adjust further 
 	mu_rate = 0.1
