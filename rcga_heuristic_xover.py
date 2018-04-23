@@ -31,7 +31,7 @@ import random
 
 
 class Evolution:
-	def __init__(self, prob, pop_size, num_variables, max_evals, max_limits, min_limits, xover_rate, mu_rate, min_fitness):
+	def __init__(self, prob, pop_size, num_variables, max_evals, max_limits, min_limits, xover_rate, mu_rate, min_fitness, chose_xover):
  
 		self.pop   = [] 
 		self.new_pop =  []
@@ -60,6 +60,8 @@ class Evolution:
 		self.problem = prob  # 1 rosen, 2 ellipsoidal 
 
 		self.min_error = min_fitness
+
+		self.xover = chose_xover  # 1. Wrights Heuristic Xover, 2. Simulated Binary Xover
  
 
 
@@ -139,7 +141,37 @@ class Evolution:
 	 
 		return 0
 
-	def wrights_xover(self,left_fit, right_fit, left, right):  
+	def sim_binary_xover(self,x1, x2): # Simulated Binary Crossover https://github.com/DEAP/deap/blob/master/deap/tools/crossover.py
+
+	#:param ind1: The first individual participating in the crossover.
+	#:param ind2: The second individual participating in the crossover.
+	#:param eta: Crowding degree of the crossover. A high eta will produce
+	 #           children resembling to their parents, while a small eta will
+	  #          produce solutions much more different.
+	  	ind1 = x1
+	  	ind2 = x2
+
+		eta = 2
+
+		for i, (x1, x2) in enumerate(zip(ind1, ind2)):
+			rand = random.random()
+			if rand <= 0.5:
+				beta = 2. * rand
+			else:
+				beta = 1. / (2. * (1. - rand))
+
+			beta **= 1. / (eta + 1.)
+
+			ind1[i] = 0.5 * (((1 + beta) * x1) + ((1 - beta) * x2))
+			ind2[i] = 0.5 * (((1 - beta) * x1) + ((1 + beta) * x2))
+
+
+		return ind1, ind2
+
+
+
+
+	def wrights_xover(self,left_fit, right_fit, left, right):   #Wrights Heuristic Crossover
 
 		alpha = random.uniform(0,1) 
 		if ( left_fit > right_fit): 
@@ -169,8 +201,14 @@ class Evolution:
 		u = random.uniform(0,1)
 
 		if u < self.xover_rate:  # implement xover  
-			child_one = self.wrights_xover(left_fit, right_fit, left, right ) 
-			child_two = self.wrights_xover(left_fit, right_fit, left, right ) 
+
+			if self.xover == 1:
+				child_one = self.wrights_xover(left_fit, right_fit, left, right ) 
+				child_two = self.wrights_xover(left_fit, right_fit, left, right ) 
+
+			elif self.xover == 2:
+				child_one, child_two = self.sim_binary_xover( left, right)
+
 		else: 
 			child_one = left
 			child_two = right
@@ -240,8 +278,8 @@ class Evolution:
 			print(self.num_eval, self.best_fit, ' local best fit so far')
 			print(best, 'local best so far') 
  
-		 	if  (1/self.best_fit) < self.min_error:
-		 		print(' reached min error')
+			if  (1/self.best_fit) < self.min_error:
+				print(' reached min error')
 				break 
  
  
@@ -260,13 +298,17 @@ def main():
 	min_fitness = 0.005  # stop when fitness reaches this value. not implemented - can be implemented later
 
 
-	max_evals = 50000   # need to decide yourself - function evaluations 
+	max_evals = 200000   # need to decide yourself - function evaluations 
 
 	pop_size = 100  # to be adjusted for the problem
 	num_variables = 10  # depends on your problem
 
 	xover_rate = 0.8 # ideal, but you can adjust further 
 	mu_rate = 0.1
+
+	choose_xover  = 1 # 1. Wrights Heuristic Xover, 2. Simulated Binary Xover
+ 
+
 
 	#max_limits = [2, 2, 2, 2, 2]  # can handle different limits for different variables
 	max_limits = np.repeat(2, num_variables)
@@ -277,7 +319,7 @@ def main():
 	prob = 1 # 1 is rosenbrock, 2 is ellipsoidal
  
 
-	evo = Evolution(prob, pop_size, num_variables, max_evals,  max_limits, min_limits, xover_rate, mu_rate, min_fitness)
+	evo = Evolution(prob, pop_size, num_variables, max_evals,  max_limits, min_limits, xover_rate, mu_rate, min_fitness, choose_xover)
 
 
 	best, best_fit, global_best, global_bestfit, pop, fit_list = evo.evo_alg()
