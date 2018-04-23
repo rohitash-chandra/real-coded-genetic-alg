@@ -202,7 +202,7 @@ class Evolution:
 			self.evaluate_population() 
 
  
-			for i in range(0,   self.pop_size):
+			for i in range(0,  self.pop_size, 2):
  
 				leftpair =  self.roullete_wheel() #np.random.randint(self.pop_size) 
 				rightpair = self.roullete_wheel()  # np.random.randint(self.pop_size)  
@@ -212,9 +212,10 @@ class Evolution:
 					rightpair = self.roullete_wheel()  # np.random.randint(self.pop_size) 
 
 				first_child, second_child = self.xover_mutate(leftpair,rightpair) 
+ 
 	   
 				self.new_pop[i,:] = first_child 
-				#self.new_pop[i+1,:] = second_child
+				self.new_pop[i+1 ,:] = second_child
 
 
 
@@ -245,7 +246,7 @@ class Evolution:
  
  
 
-			self.print_pop() 
+		self.print_pop() 
 
 		return best, 1/self.best_fit, global_best, 1/global_bestfit, self.pop, self.fit_list
 
@@ -262,7 +263,7 @@ def main():
 	max_evals = 50000   # need to decide yourself - function evaluations 
 
 	pop_size = 100  # to be adjusted for the problem
-	num_variables = 5  # depends on your problem
+	num_variables = 10  # depends on your problem
 
 	xover_rate = 0.8 # ideal, but you can adjust further 
 	mu_rate = 0.1
