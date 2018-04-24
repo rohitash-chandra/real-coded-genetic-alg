@@ -141,15 +141,17 @@ class Evolution:
 	 
 		return 0
 
-	def sim_binary_xover(self,x1, x2): # Simulated Binary Crossover https://github.com/DEAP/deap/blob/master/deap/tools/crossover.py
+ 
+
+	def sim_binary_xover(self,ind1, ind2): # Simulated Binary Crossover https://github.com/DEAP/deap/blob/master/deap/tools/crossover.py
 
 	#:param ind1: The first individual participating in the crossover.
 	#:param ind2: The second individual participating in the crossover.
 	#:param eta: Crowding degree of the crossover. A high eta will produce
 	 #           children resembling to their parents, while a small eta will
 	  #          produce solutions much more different.
-	  	ind1 = x1
-	  	ind2 = x2
+		x1 = ind1
+		x2  = ind2 
 
 		eta = 2
 
@@ -165,6 +167,27 @@ class Evolution:
 			ind1[i] = 0.5 * (((1 + beta) * x1) + ((1 - beta) * x2))
 			ind2[i] = 0.5 * (((1 - beta) * x1) + ((1 + beta) * x2))
 
+
+		return ind1, ind2
+
+ 
+
+
+	def blend_xover(self,ind1, ind2):
+		'''Executes a blend crossover that modify in-place the input individuals. 
+		:param ind1: The first individual participating in the crossover.
+		:param ind2: The second individual participating in the crossover.
+		:param alpha: Extent of the interval in which the new values can be drawn
+				  for each attribute on both side of the parents' attributes. '''
+		alpha = 0.1
+		x1 = ind1
+		x2 = ind2
+
+
+		for i in range(ind1.size): #(x1, x2) in enumerate(zip(ind1, ind2)):
+			gamma = (1. + 2. * alpha) * random.random() - alpha
+			ind1[i] = (1. - gamma) * x1[i] + gamma * x2[i]
+			ind2[i] = gamma * x1[i] + (1. - gamma) * x2[i]
 
 		return ind1, ind2
 
@@ -209,6 +232,9 @@ class Evolution:
 			elif self.xover == 2:
 				child_one, child_two = self.sim_binary_xover( left, right)
 
+			elif self.xover == 3:
+				child_one, child_two = self.blend_xover( left, right)
+
 		else: 
 			child_one = left
 			child_two = right
@@ -227,9 +253,7 @@ class Evolution:
 	def evo_alg(self):
 
 		self.initialize()
-
-		self.print_pop()
-
+ 
 		global_bestfit = 0
 		global_best = []
 		global_bestindex = 0
@@ -262,29 +286,19 @@ class Evolution:
 			if self.best_fit > global_bestfit:
 				global_bestfit = self.best_fit 
 				global_best = self.pop[self.best_index, :]
-
-			print(global_bestfit, ' global_best') 
-
-			print(global_best, ' global_best sol')
-
+ 
 
 			self.pop = self.new_pop
 
 
 			self.pop[0,:] = global_best # ensure that you retain the best 
 
- 
-
-			print(self.num_eval, self.best_fit, ' local best fit so far')
-			print(best, 'local best so far') 
+  
  
 			if  (1/self.best_fit) < self.min_error:
 				print(' reached min error')
 				break 
- 
- 
-
-		self.print_pop() 
+  
 
 		return best, 1/self.best_fit, global_best, 1/global_bestfit, self.pop, self.fit_list
 
@@ -293,20 +307,24 @@ class Evolution:
 def main():
 
 
+	file=open('results_fitness.txt','a')
+
+	file_solution=open('results_solution.txt','a')
+
+
 	random.seed(time.time()) 
 
 	min_fitness = 0.005  # stop when fitness reaches this value. not implemented - can be implemented later
 
 
-	max_evals = 200000   # need to decide yourself - function evaluations 
+	max_evals = 100000   # need to decide yourself - function evaluations 
 
-	pop_size = 100  # to be adjusted for the problem
-	num_variables = 10  # depends on your problem
+	pop_size = 50  # to be adjusted for the problem
+	num_variables =  5 # depends on your problem
 
 	xover_rate = 0.8 # ideal, but you can adjust further 
 	mu_rate = 0.1
 
-	choose_xover  = 1 # 1. Wrights Heuristic Xover, 2. Simulated Binary Xover
  
 
 
@@ -317,27 +335,44 @@ def main():
 	min_limits = np.repeat(0, num_variables)
 
 	prob = 1 # 1 is rosenbrock, 2 is ellipsoidal
+
+	num_experiments = 5 # number of experiments with diffirent initial population
+	num_xover = 3
+
+	# lets evaluate which one is the best xover operator, 
+
+	#pre results show that for 10 dimensions - blend xover is best, then wrights, then sim binary xover - for Rosenbrock problem
+	#wrights heuristic works best for ellipsoidal problem
+
+	global_fit = np.zeros(num_experiments)
+
+
+	for i in range(num_xover):
+
+
+		choose_xover  = i +1 # 1. Wrights Heuristic Xover, 2. Simulated Binary Xover, 3. Blend xover, 4.  
+
+		for j in range(num_experiments): 
+
+			evo = Evolution(prob, pop_size, num_variables, max_evals,  max_limits, min_limits, xover_rate, mu_rate, min_fitness, choose_xover)
  
+			best, best_fit, global_best, global_bestfit, pop, fit_list = evo.evo_alg()
+			np.savetxt(file_solution, np.transpose([i,j, global_bestfit, best_fit]), fmt='%1.1f')
+			np.savetxt(file_solution, np.transpose(global_best) , fmt='%1.4f') 
+			np.savetxt(file_solution, np.transpose(best) , fmt='%1.4f')
 
-	evo = Evolution(prob, pop_size, num_variables, max_evals,  max_limits, min_limits, xover_rate, mu_rate, min_fitness, choose_xover)
+			global_fit[j] = global_bestfit 
 
+			print(j, best_fit, global_bestfit, ' best and global best fit')
 
-	best, best_fit, global_best, global_bestfit, pop, fit_list = evo.evo_alg()
-
-	print(' ******************************************* main results ****************')
-
-
-	print(best, ' local  best ')
-
-	print(best_fit, '  local  best fit')
+			print(j, best, global_best, ' best and global best sol')
 
 
-	print(global_best, '   global best ')
-
-	print(global_bestfit, '   global bestfit')
-
-	#print(pop, ' final pop')
+		print(global_fit, '    global bestfit')  
+		print(i, np.mean(global_fit), '  mean  global bestfit') 
+		#np.savetxt(file, global_fit)
  
+		np.savetxt(file, [i,np.mean(global_fit) ], fmt='%1.2f')
  
 
 
